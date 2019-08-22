@@ -532,8 +532,10 @@ dependencies = [
 name = "parquet-cat"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "parquet 0.15.0-SNAPSHOT (git+https://github.com/apache/arrow)",
+ "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

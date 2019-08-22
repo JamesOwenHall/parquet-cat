@@ -1,10 +1,14 @@
 extern crate clap;
 extern crate parquet;
+extern crate serde_json;
 
-use std::fs::File;
-use std::path::Path;
+mod row_printer;
+
 use clap::{App, Arg, ArgMatches};
 use parquet::file::reader::{FileReader, SerializedFileReader};
+use row_printer::RowPrinter;
+use std::fs::File;
+use std::path::Path;
 
 fn main() {
     run_app(get_app().get_matches());
@@ -26,6 +30,9 @@ fn run_app(matches: ArgMatches) {
 fn cat_file(path: &str) {
     let file = File::open(&Path::new(path)).unwrap();
     let reader = SerializedFileReader::new(file).unwrap();
+    let schema = reader.metadata().file_metadata().schema().clone();
+
     let iter = reader.get_row_iter(None).unwrap();
-    iter.for_each(|record| println!("{}", record));
+    let mut printer = RowPrinter::new(schema);
+    iter.for_each(|row| printer.println(&row));
 }
