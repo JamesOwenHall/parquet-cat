@@ -10,4 +10,5 @@ edition = "2018"
 chrono = "0.4"
 clap = "~2.33"
 parquet = {git = "https://github.com/apache/arrow"}
+serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
