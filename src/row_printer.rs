@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use parquet::basic::Type as BasicType;
 use parquet::record::{Row, RowAccessor};
 use parquet::schema::types::{Type, TypePtr};
 use serde_json::{Number, Value as JsonValue};
+use std::collections::HashMap;
 
 pub struct RowPrinter {
     fields: Vec<TypePtr>,
@@ -41,7 +42,11 @@ impl RowPrinter {
                     BasicType::BOOLEAN => JsonValue::Bool(row.get_bool(i).unwrap()),
                     BasicType::INT32 => JsonValue::Number(Number::from(row.get_int(i).unwrap())),
                     BasicType::INT64 => JsonValue::Number(Number::from(row.get_long(i).unwrap())),
-                    BasicType::INT96 => JsonValue::Number(Number::from(row.get_timestamp(i).unwrap())),
+                    BasicType::INT96 => {
+                        let nanos = row.get_timestamp(i).unwrap();
+                        let ndt = NaiveDateTime::from_timestamp((nanos / 1000) as i64, (nanos % 1000) as u32);
+                        JsonValue::String(DateTime::<Utc>::from_utc(ndt, Utc).to_rfc3339_opts(SecondsFormat::AutoSi, true))
+                    },
                     BasicType::DOUBLE => JsonValue::Number(Number::from_f64(row.get_double(i).unwrap()).unwrap()),
                     BasicType::BYTE_ARRAY => JsonValue::String(row.get_string(i).unwrap().clone()),
                     _ => unimplemented!(),
