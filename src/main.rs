@@ -2,6 +2,7 @@ extern crate chrono;
 extern crate clap;
 extern crate parquet;
 extern crate serde_json;
+extern crate signal_hook;
 
 mod file_metadata;
 mod row_printer;
@@ -14,6 +15,7 @@ use std::fs::File;
 use std::path::Path;
 
 fn main() {
+    handle_broken_pipe();
     run_app(get_app().get_matches());
 }
 
@@ -54,4 +56,15 @@ fn cat_file(path: &str) {
     let iter = reader.get_row_iter(None).unwrap();
     let mut printer = RowPrinter::new(schema);
     iter.for_each(|row| printer.println(&row));
+}
+
+// By default, Rust apps will panic if they can't write to stdout/stderr. This
+// function handles SIGPIPE which is sent when its output is closed. This app
+// is useless if it can't print, so it simply exits the app.
+fn handle_broken_pipe() {
+    unsafe {
+        let _ = signal_hook::register(signal_hook::SIGPIPE, || {
+            std::process::exit(1);
+        });
+    }
 }
