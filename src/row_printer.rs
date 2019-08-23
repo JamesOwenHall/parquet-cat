@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+use std::error::Error;
+use std::fmt;
+
 use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
 use parquet::basic::Type as BasicType;
 use parquet::record::{Row, RowAccessor};
 use parquet::schema::types::{Type, TypePtr};
 use serde_json::{Number, Value as JsonValue};
-use std::collections::HashMap;
 
 pub struct RowPrinter {
     fields: Vec<TypePtr>,
@@ -18,18 +21,19 @@ impl RowPrinter {
         }
     }
 
-    pub fn println(&mut self, row: &Row) {
+    pub fn println(&mut self, row: &Row) -> Result<(), UnsupportedType> {
         self.map.clear();
         for (i, field) in self.fields.iter().enumerate() {
-            let (key, value) = Self::as_json_field(field, row, i);
+            let (key, value) = Self::as_json_field(field, row, i)?;
             self.map.insert(key, value);
         }
 
         let serialized = serde_json::to_string(&self.map).unwrap();
         println!("{}", serialized);
+        Ok(())
     }
 
-    fn as_json_field(field: &TypePtr, row: &Row, i: usize) -> (String, JsonValue) {
+    fn as_json_field(field: &TypePtr, row: &Row, i: usize) -> Result<(String, JsonValue), UnsupportedType> {
         match field.as_ref() {
             Type::PrimitiveType{
                 basic_info,
@@ -49,14 +53,27 @@ impl RowPrinter {
                     },
                     BasicType::DOUBLE => JsonValue::Number(Number::from_f64(row.get_double(i).unwrap()).unwrap()),
                     BasicType::BYTE_ARRAY => JsonValue::String(row.get_string(i).unwrap().clone()),
-                    _ => unimplemented!(),
+                    _ => return Err(UnsupportedType(format!("{}", physical_type))),
                 };
-                (basic_info.name().to_owned(), value)
+                Ok((basic_info.name().to_owned(), value))
             },
-            Type::GroupType{
-                basic_info: _,
-                fields: _,
-            } => unimplemented!(),
+            Type::GroupType{basic_info: _,fields: _} => Err(UnsupportedType(format!("group"))),
         }
     }
 }
+
+pub struct UnsupportedType(String);
+
+impl fmt::Display for UnsupportedType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} fields are not supported", self.0)
+    }
+}
+
+impl fmt::Debug for UnsupportedType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} fields are not supported", self.0)
+    }
+}
+
+impl Error for UnsupportedType {}

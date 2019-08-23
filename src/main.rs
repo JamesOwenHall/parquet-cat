@@ -7,12 +7,14 @@ extern crate signal_hook;
 mod file_metadata;
 mod row_printer;
 
-use clap::{App, Arg, ArgMatches};
-use file_metadata::FileMetadata;
-use parquet::file::reader::{FileReader, SerializedFileReader};
-use row_printer::RowPrinter;
 use std::fs::File;
 use std::path::Path;
+
+use file_metadata::FileMetadata;
+use row_printer::RowPrinter;
+
+use clap::{App, Arg, ArgMatches};
+use parquet::file::reader::{FileReader, SerializedFileReader};
 
 fn main() {
     handle_broken_pipe();
@@ -53,9 +55,13 @@ fn cat_file(path: &str) {
     let reader = SerializedFileReader::new(file).unwrap();
     let schema = reader.metadata().file_metadata().schema().clone();
 
-    let iter = reader.get_row_iter(None).unwrap();
     let mut printer = RowPrinter::new(schema);
-    iter.for_each(|row| printer.println(&row));
+    for row in reader.get_row_iter(None).unwrap() {
+        printer.println(&row).unwrap_or_else(|err| {
+            eprintln!("Error: {}", err);
+            std::process::exit(1);
+        });
+    }
 }
 
 // By default, Rust apps will panic if they can't write to stdout/stderr. This
