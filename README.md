@@ -33,7 +33,7 @@ program       | time
 parquet-cat   | 6 sec
 parquet-tools | 1 min 16 sec
 
-parquet-cat is more than 10x as fast as parquet-tools at scanning data.
+parquet-cat is 10x faster at converting the data to JSON.
 
 ### Retrieving Metadata
 
